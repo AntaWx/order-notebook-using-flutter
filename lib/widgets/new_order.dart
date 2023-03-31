@@ -34,6 +34,8 @@ class _NewOrderState extends State<NewOrder> {
     }
 
     widget.addOrd(submitName, submitNameOrder, submitAmount, submitPrice);
+
+    Navigator.of(context).pop();
   }
 
   @override
