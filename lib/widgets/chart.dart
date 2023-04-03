@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 import 'package:simple_notebook_order/models/order.dart';
+import 'package:simple_notebook_order/widgets/chart_bar.dart';
 
 class Chart extends StatelessWidget {
   final List<Order> dayDataOrder;
@@ -18,10 +19,16 @@ class Chart extends StatelessWidget {
         }
       }
 
-      print(DateFormat.E(weekDays));
-      print(totalSum);  
+      return {
+        'days': DateFormat.E().format(weekDays).substring(0, 1),
+        'amount': totalSum
+      };
+    }).reversed.toList();
+  }
 
-      return {'days': DateFormat.E(weekDays), 'amount': totalSum};
+  double get totalSpending {
+    return daysPriceOrder.fold(0.0, (sum, item) {
+      return sum + (item['amount'] as double);
     });
   }
 
@@ -30,8 +37,25 @@ class Chart extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Card(
-      child: Row(
-        children: [],
+      child: Padding(
+        padding: const EdgeInsets.all(5),
+        child: Row(
+          mainAxisAlignment: MainAxisAlignment.spaceAround,
+          children: [
+            ...daysPriceOrder.map((data) {
+              return Flexible(
+                fit: FlexFit.tight,
+                child: ChartBar(
+                  days: data['days'] as String,
+                  spendingAmount: data['amount'] as double,
+                  spendingPctAmount: totalSpending == 0.0
+                      ? 0.0
+                      : (data['amount'] as double) / totalSpending,
+                ),
+              );
+            }).toList(),
+          ],
+        ),
       ),
     );
   }

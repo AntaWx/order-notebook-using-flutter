@@ -1,39 +1,55 @@
 import 'package:flutter/material.dart';
-import 'package:flutter/src/widgets/framework.dart';
-import 'package:flutter/src/widgets/placeholder.dart';
+import 'package:intl/intl.dart';
 
 class NewOrder extends StatefulWidget {
   final Function addOrd;
 
-  NewOrder({super.key, required this.addOrd});
+  const NewOrder({super.key, required this.addOrd});
 
   @override
   State<NewOrder> createState() => _NewOrderState();
 }
 
 class _NewOrderState extends State<NewOrder> {
-  final nameController = TextEditingController();
+  final _nameController = TextEditingController();
+  final _nameOrderController = TextEditingController();
+  final _priceController = TextEditingController();
+  final _amountController = TextEditingController();
+  DateTime? userPickedDate;
 
-  final nameOrderController = TextEditingController();
+  void _showDatePicker() {
+    showDatePicker(
+            context: context,
+            initialDate: DateTime.now(),
+            firstDate: DateTime(2023),
+            lastDate: DateTime.now())
+        .then((pickedDate) {
+      if (pickedDate == null) {
+        return;
+      } else {
+        setState(() {
+          userPickedDate = pickedDate;
+        });
+      }
+    });
+  }
 
-  final priceController = TextEditingController();
-
-  final amountController = TextEditingController();
-
-  void submitOrder() {
-    final submitName = nameController.text;
-    final submitNameOrder = nameOrderController.text;
-    final submitPrice = double.parse(priceController.text);
-    final submitAmount = int.parse(amountController.text);
+  void _submitOrder() {
+    final submitName = _nameController.text;
+    final submitNameOrder = _nameOrderController.text;
+    final submitPrice = double.parse(_priceController.text);
+    final submitAmount = int.parse(_amountController.text);
 
     if (submitName.isEmpty ||
         submitNameOrder.isEmpty ||
         submitAmount <= 0 ||
-        submitPrice < 0) {
+        submitPrice < 0 ||
+        userPickedDate == null) {
       return;
     }
 
-    widget.addOrd(submitName, submitNameOrder, submitAmount, submitPrice);
+    widget.addOrd(
+        submitName, submitNameOrder, submitAmount, submitPrice, userPickedDate);
 
     Navigator.of(context).pop();
   }
@@ -49,36 +65,55 @@ class _NewOrderState extends State<NewOrder> {
           crossAxisAlignment: CrossAxisAlignment.end,
           children: [
             TextField(
-              decoration: InputDecoration(labelText: 'nama'),
-              controller: nameController,
-              onSubmitted: (_) => submitOrder(),
+              decoration: const InputDecoration(labelText: 'nama'),
+              controller: _nameController,
+              onSubmitted: (_) => _submitOrder(),
             ),
             TextField(
-              decoration: InputDecoration(labelText: 'pesanan'),
-              controller: nameOrderController,
+              decoration: const InputDecoration(labelText: 'pesanan'),
+              controller: _nameOrderController,
               minLines: 1,
               maxLines: 5,
-              onSubmitted: (_) => submitOrder(),
+              onSubmitted: (_) => _submitOrder(),
             ),
             TextField(
-              decoration: InputDecoration(labelText: 'jumlah'),
-              controller: amountController,
+              decoration: const InputDecoration(labelText: 'jumlah'),
+              controller: _amountController,
               keyboardType: TextInputType.number,
-              onSubmitted: (_) => submitOrder(),
+              minLines: 1,
+              maxLines: 5,
+              onSubmitted: (_) => _submitOrder(),
             ),
             TextField(
-              decoration: InputDecoration(labelText: 'harga'),
-              controller: priceController,
+              decoration: const InputDecoration(labelText: 'harga'),
+              controller: _priceController,
               keyboardType: TextInputType.number,
-              onSubmitted: (_) => submitOrder(),
+              onSubmitted: (_) => _submitOrder(),
             ),
-            TextButton(
+            Row(
+              children: [
+                Expanded(
+                  child: Text(
+                    userPickedDate == null
+                        ? 'No Date Choosen'
+                        : DateFormat.yMd().format(userPickedDate!),
+                  ),
+                ),
+                TextButton(
+                    onPressed: _showDatePicker,
+                    child: const Text(
+                      'choose date',
+                      style: TextStyle(fontWeight: FontWeight.bold),
+                    ))
+              ],
+            ),
+            ElevatedButton(
                 onPressed: () {
-                  submitOrder;
+                  _submitOrder();
                 },
-                child: const Text(
+                child: Text(
                   'add order',
-                  style: TextStyle(color: Colors.amber),
+                  style: Theme.of(context).accentTextTheme.titleLarge,
                 ))
           ],
         ),

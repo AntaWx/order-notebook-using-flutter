@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:simple_notebook_order/models/order.dart';
+import 'package:simple_notebook_order/widgets/chart.dart';
 import 'package:simple_notebook_order/widgets/order_list.dart';
 
 import 'util/generate_util/add_new_order.dart';
@@ -30,7 +31,7 @@ class MyApp extends StatelessWidget {
         accentTextTheme: ThemeData.light().textTheme.copyWith(
             titleLarge: TextStyle(
                 fontFamily: 'Alkatra',
-                fontSize: 30,
+                fontSize: 18,
                 fontWeight: FontWeight.bold,
                 color: Theme.of(context).colorScheme.onBackground)),
         appBarTheme: AppBarTheme(
@@ -43,11 +44,17 @@ class MyApp extends StatelessWidget {
               .textTheme
               .copyWith(
                   titleLarge: TextStyle(
-                      fontFamily: 'PTSerif',
+                      fontFamily: 'Oswald',
                       fontSize: 17,
                       color: Theme.of(context).colorScheme.onBackground))
               .titleLarge,
         ),
+        primaryTextTheme: ThemeData.light().textTheme.copyWith(
+            titleLarge: TextStyle(
+                fontFamily: 'Oswald',
+                fontSize: 15,
+                fontWeight: FontWeight.w200,
+                color: Theme.of(context).colorScheme.onBackground)),
       ),
       home: const MyHomePage(),
     );
@@ -64,15 +71,25 @@ class MyHomePage extends StatefulWidget {
 class _MyHomePageState extends State<MyHomePage> {
   final List<Order> _orderList = [];
 
-  void _newOrderList(
-      String ordName, String ordOrder, int amountOrder, double ordPrice) {
+  List<Order> get _recentOrder {
+    return _orderList.where((ord) {
+      return ord.date.isAfter(
+        DateTime.now().subtract(
+          Duration(days: 7),
+        ),
+      );
+    }).toList();
+  }
+
+  void _newOrderList(String ordName, String ordOrder, int amountOrder,
+      double ordPrice, DateTime dateTime) {
     final newOrder = Order(
         id: RandomIntId().gusantaIdGen(),
         name: ordName,
         order: ordOrder,
         price: ordPrice,
         amount: amountOrder,
-        date: DateTime.now());
+        date: dateTime);
 
     setState(() {
       _orderList.add(newOrder);
@@ -85,6 +102,12 @@ class _MyHomePageState extends State<MyHomePage> {
         builder: (bCtx) {
           return NewOrder(addOrd: _newOrderList);
         });
+  }
+
+  void _deleteOrder(int id) {
+    setState(() {
+      _orderList.removeWhere((element) => element.id == id);
+    });
   }
 
   @override
@@ -108,18 +131,14 @@ class _MyHomePageState extends State<MyHomePage> {
             width: double.infinity,
             margin: const EdgeInsets.fromLTRB(0, 15, 0, 15),
             child: Card(
-              elevation: 5,
-              color: Theme.of(context).colorScheme.primary,
-              child: Text(
-                'CHART!',
-                textAlign: TextAlign.center,
-                style: TextStyle(
-                    color: Theme.of(context).colorScheme.onBackground,
-                    fontWeight: FontWeight.bold),
-              ),
-            ),
+                elevation: 5,
+                color: Theme.of(context).colorScheme.primary,
+                child: Chart(dayDataOrder: _recentOrder)),
           ),
-          OrderList(orders: _orderList)
+          OrderList(
+            orders: _orderList,
+            deleteOrders: _deleteOrder,
+          )
         ],
       ),
       floatingActionButtonLocation: FloatingActionButtonLocation.centerFloat,
