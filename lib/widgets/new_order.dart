@@ -1,5 +1,9 @@
+import 'dart:io';
+
+import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
+import 'package:simple_notebook_order/widgets/adaptive_button.dart';
 
 class NewOrder extends StatefulWidget {
   final Function addOrd;
@@ -99,22 +103,24 @@ class _NewOrderState extends State<NewOrder> {
                         : DateFormat.yMd().format(userPickedDate!),
                   ),
                 ),
-                TextButton(
-                    onPressed: _showDatePicker,
-                    child: const Text(
-                      'choose date',
-                      style: TextStyle(fontWeight: FontWeight.bold),
-                    ))
+                AdaptiveFlatButton(
+                    text: 'choose date', handler: _showDatePicker)
               ],
             ),
-            ElevatedButton(
-                onPressed: () {
-                  _submitOrder();
-                },
-                child: Text(
-                  'add order',
-                  style: Theme.of(context).accentTextTheme.titleLarge,
-                ))
+            Platform.isIOS
+                ? CupertinoButton(
+                    color: Theme.of(context).colorScheme.primary,
+                    onPressed: _submitOrder,
+                    child: Text('add order',
+                        style: Theme.of(context).accentTextTheme.titleLarge))
+                : ElevatedButton(
+                    onPressed: () {
+                      _submitOrder();
+                    },
+                    child: Text(
+                      'add order',
+                      style: Theme.of(context).accentTextTheme.titleLarge,
+                    ))
           ],
         ),
       ),
