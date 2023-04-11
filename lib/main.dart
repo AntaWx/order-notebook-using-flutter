@@ -1,4 +1,5 @@
 import 'dart:io';
+import 'dart:math';
 
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
@@ -71,10 +72,11 @@ class MyHomePage extends StatefulWidget {
   State<MyHomePage> createState() => _MyHomePageState();
 }
 
-class _MyHomePageState extends State<MyHomePage> {
+class _MyHomePageState extends State<MyHomePage> with WidgetsBindingObserver {
   final List<Order> _orderList = [];
-  bool? showChart = false;
+  AppLifecycleState? _appLifecycleState;
 
+  bool? showChart = false;
   List<Order> get _recentOrder {
     return _orderList.where((ord) {
       return ord.date.isAfter(
@@ -124,11 +126,8 @@ class _MyHomePageState extends State<MyHomePage> {
     });
   }
 
-  @override
-  Widget build(BuildContext context) {
-    final mediaQuery = MediaQuery.of(context);
-    final detectOrientation = mediaQuery.orientation == Orientation.landscape;
-    final PreferredSizeWidget appBar = Platform.isIOS
+  PreferredSizeWidget _buildAppBar() {
+    return Platform.isIOS
         ? CupertinoNavigationBar(
             middle: Text(
               'Order Notebook',
@@ -139,7 +138,7 @@ class _MyHomePageState extends State<MyHomePage> {
               children: [
                 GestureDetector(
                   onTap: () => _openAddNewOrder(context),
-                  child: Icon(CupertinoIcons.add),
+                  child: const Icon(CupertinoIcons.add),
                 ),
               ],
             ),
@@ -155,9 +154,93 @@ class _MyHomePageState extends State<MyHomePage> {
                   ))
             ],
           ) as PreferredSizeWidget;
+  }
+
+  @override
+  void initState() {
+    super.initState();
+    WidgetsBinding.instance.addObserver(this);
+  }
+
+  @override
+  void didChangeAppLifecycleState(AppLifecycleState state) {
+    setState(() {
+      _appLifecycleState = state;
+    });
+    print(_appLifecycleState);
+  }
+
+  @override
+  dispose() {
+    WidgetsBinding.instance.removeObserver(this);
+    super.dispose();
+  }
+
+  List<Widget> _buildLanscapeApp(
+      MediaQueryData mediaQuery, AppBar appBar, SizedBox orderList) {
+    return [
+      Row(
+        mainAxisAlignment: MainAxisAlignment.center,
+        children: [
+          Text(
+            'show chart',
+            style: Theme.of(context).primaryTextTheme.titleLarge,
+          ),
+          Switch.adaptive(
+              value: showChart!,
+              onChanged: (val) {
+                showChart == null
+                    ? false
+                    : setState(() {
+                        showChart = val;
+                      });
+              })
+        ],
+      ),
+      showChart == true
+          ? Container(
+              width: double.infinity,
+              margin: const EdgeInsets.fromLTRB(0, 15, 0, 15),
+              height: (mediaQuery.size.height -
+                      appBar.preferredSize.height -
+                      mediaQuery.padding.top) *
+                  0.7,
+              child: Card(
+                  elevation: 5,
+                  color: Theme.of(context).colorScheme.primary,
+                  child: Chart(dayDataOrder: _recentOrder)),
+            )
+          : orderList
+    ];
+  }
+
+  List<Widget> _buildPortraitApp(
+      MediaQueryData mediaQuery, AppBar appBar, SizedBox orderList) {
+    return [
+      Container(
+        width: double.infinity,
+        padding: const EdgeInsets.all(5),
+        height: (mediaQuery.size.height -
+                appBar.preferredSize.height -
+                mediaQuery.padding.top) *
+            0.2,
+        child: Card(
+            margin: const EdgeInsets.fromLTRB(0, 15, 0, 15),
+            elevation: 5,
+            color: Theme.of(context).colorScheme.primary,
+            child: Chart(dayDataOrder: _recentOrder)),
+      ),
+      orderList
+    ];
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final mediaQuery = MediaQuery.of(context);
+    final detectOrientation = mediaQuery.orientation == Orientation.landscape;
     final orderList = SizedBox(
       height: (mediaQuery.size.height -
-              appBar.preferredSize.height -
+              _buildAppBar().preferredSize.height -
               mediaQuery.padding.top) *
           0.8,
       child: OrderList(
@@ -169,54 +252,11 @@ class _MyHomePageState extends State<MyHomePage> {
       child: ListView(
         children: <Widget>[
           if (detectOrientation)
-            Row(
-              mainAxisAlignment: MainAxisAlignment.center,
-              children: [
-                Text(
-                  'show chart',
-                  style: Theme.of(context).primaryTextTheme.titleLarge,
-                ),
-                Switch.adaptive(
-                    value: showChart!,
-                    onChanged: (val) {
-                      showChart == null
-                          ? false
-                          : setState(() {
-                              showChart = val;
-                            });
-                    })
-              ],
-            ),
+            ..._buildLanscapeApp(
+                mediaQuery, _buildAppBar() as AppBar, orderList),
           if (!detectOrientation)
-            Container(
-              width: double.infinity,
-              padding: EdgeInsets.all(5),
-              height: (mediaQuery.size.height -
-                      appBar.preferredSize.height -
-                      mediaQuery.padding.top) *
-                  0.2,
-              child: Card(
-                  margin: const EdgeInsets.fromLTRB(0, 15, 0, 15),
-                  elevation: 5,
-                  color: Theme.of(context).colorScheme.primary,
-                  child: Chart(dayDataOrder: _recentOrder)),
-            ),
-          if (!detectOrientation) orderList,
-          if (detectOrientation)
-            showChart == true
-                ? Container(
-                    width: double.infinity,
-                    margin: const EdgeInsets.fromLTRB(0, 15, 0, 15),
-                    height: (mediaQuery.size.height -
-                            appBar.preferredSize.height -
-                            mediaQuery.padding.top) *
-                        0.7,
-                    child: Card(
-                        elevation: 5,
-                        color: Theme.of(context).colorScheme.primary,
-                        child: Chart(dayDataOrder: _recentOrder)),
-                  )
-                : orderList
+            ..._buildPortraitApp(
+                mediaQuery, _buildAppBar() as AppBar, orderList),
         ],
       ),
     );
@@ -224,7 +264,7 @@ class _MyHomePageState extends State<MyHomePage> {
         ? CupertinoPageScaffold(child: body)
         : Scaffold(
             backgroundColor: Theme.of(context).colorScheme.background,
-            appBar: appBar,
+            appBar: _buildAppBar(),
             body: body,
             floatingActionButtonLocation:
                 FloatingActionButtonLocation.centerFloat,
